@@ -63,6 +63,12 @@
 	  margin: 5px;
 	  cursor: pointer;
       }
+
+      .slideshow-miniature {
+	  max-width: 128px;
+	  max-height: 128px;
+	  margin: 5px;
+      }      
       
     </style>
     <script src="js/zedmdos-api.js" type="text/javascript"></script>
@@ -73,6 +79,7 @@
       <span class="tab" id="tab-countdown">&#x23F3;</span>
       <span class="tab" id="tab-text">&#x1F524;</span>
       <span class="tab" id="tab-image">&#x1F3A8;</span>
+      <span class="tab" id="tab-slideshow">&#x1F39E;</span>      
       <span class="tab" id="tab-clear">&#x1F9F9;</span>
     </div>
     <div id="contents">
@@ -115,6 +122,10 @@
       <div id="content-image" class="tab-content">
 	<div id="image-images"></div>
       </div>
+
+      <div id="content-slideshow" class="tab-content">
+        <div id="slideshow"></div>
+            </div>      
 
       <div id="content-clear" class="tab-content">
       </div>

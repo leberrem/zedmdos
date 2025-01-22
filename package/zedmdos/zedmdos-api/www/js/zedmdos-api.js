@@ -51,16 +51,18 @@ function setMenu(menu) {
     document.getElementById("content-countdown").style.display = (menu == "countdown" ? "block" : "none");
     document.getElementById("content-text")     .style.display = (menu == "text"      ? "block" : "none");
     document.getElementById("content-image")    .style.display = (menu == "image"     ? "block" : "none");
+    document.getElementById("content-slideshow").style.display = (menu == "slideshow" ? "block" : "none");
     document.getElementById("content-clear")    .style.display = (menu == "clear"     ? "block" : "none");
 }
 
 function addListeners() {
     // menu
-    document.getElementById("tab-clock")    .addEventListener('click', function() { setMenu("clock");     updateClock();     });
-    document.getElementById("tab-countdown").addEventListener('click', function() { setMenu("countdown"); updateCountdown(); });
-    document.getElementById("tab-text")     .addEventListener('click', function() { setMenu("text");      updateText();      });
-    document.getElementById("tab-image")    .addEventListener('click', function() { setMenu("image");     updateImageTab();     });
-    document.getElementById("tab-clear")    .addEventListener('click', function() { setMenu("clear");     updateClear();     });
+    document.getElementById("tab-clock")    .addEventListener('click', function() { setMenu("clock");     updateClock();       });
+    document.getElementById("tab-countdown").addEventListener('click', function() { setMenu("countdown"); updateCountdown();   });
+    document.getElementById("tab-text")     .addEventListener('click', function() { setMenu("text");      updateText();        });
+    document.getElementById("tab-image")    .addEventListener('click', function() { setMenu("image");     updateImageTab();    });
+    document.getElementById("tab-slideshow").addEventListener('click', function() { setMenu("slideshow"); updateSlideshowTab();});    
+    document.getElementById("tab-clear")    .addEventListener('click', function() { setMenu("clear");     updateClear();       });
 
     // clock
     document.getElementById("clock-color")          .addEventListener('change', function() { updateClock(); });
@@ -141,6 +143,29 @@ function updateImage(img) {
     updateZoneDmdplay("dmd-play.py --host " + host + " -f \"" + img + "\"");
     updateZoneCurl("curl -X POST \"" + encodeURI("http://" + host + "/image?file="+img) + "\"");
     fetch('/image?file='+img, { method: "POST" }); // do nothing in case of error
+}
+
+function updateSlideshowTab() {
+    var host = location.hostname;
+    if(host == "") host = "localhost";
+    updateZoneDmdplay("dmd-play.py --host " + host + " --slideshow");
+    updateZoneCurl("curl -X POST \"" + encodeURI("http://" + host + "/slideshow") + '"');
+    fetch('/slideshow', { method: "POST" }); // do nothing in case of error
+
+    fetch("images/list")
+	.then(res => res.json())
+	.then(data => {
+	    var html = "";
+	    data.forEach(function(obj) {
+	    	html += "<img class=\"slideshow-miniature\" src=\"images/contents/" + obj + "\" />";
+	    });
+	    if(html == "") {
+		html = "<img class=\"slideshow-miniature\" src=\"images/contents/zedmd.png\" />";
+		html += "<br />Put your .png, .gif in the configs/images folder.";
+		fetch('/image?file=zedmd.png', { method: "POST" }); // do nothing in case of error
+	    }
+	    document.getElementById("slideshow").innerHTML = html;
+	});
 }
 
 function updateClear() {

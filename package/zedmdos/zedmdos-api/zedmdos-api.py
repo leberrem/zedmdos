@@ -9,12 +9,24 @@ import os
 import glob
 import json
 import re
+import random
+import multiprocessing
 
 class ZeDMDApiHTTPRequestHandler(BaseHTTPRequestHandler):
 
-    files_root  = "/usr/share/zedmd-api/www"
-    images_root = "/boot/configs/images"
-    image_logo  = "/usr/share/zedmd-api/logo.png"
+    # files_root  = "/usr/share/zedmd-api/www"
+    # images_root = "/boot/configs/images"
+    # image_logo  = "/usr/share/zedmd-api/logo.png"
+    # dmd_play    = "dmd-play"
+    # port        = 80
+
+    files_root  = "./www"
+    images_root = "../../../../animation"
+    image_logo  = "./logo.png"
+    dmd_play    = "../../../../dmd-simulator/dmd-play.py"
+    port = 9080
+
+    slideshow_thread = None
 
     def do_GET(self):
         try:
@@ -83,13 +95,23 @@ class ZeDMDApiHTTPRequestHandler(BaseHTTPRequestHandler):
         x = re.search("^[0-9a-zA-Z\._-]+$", f)
         return x is not None
 
+    def slideshow(self):
+        files = glob.glob(ZeDMDApiHTTPRequestHandler.images_root + '/*.gif')
+        while True:
+            p = subprocess.Popen([ZeDMDApiHTTPRequestHandler.dmd_play, "--once", "--file", random.choice(files)])
+            p.wait()
+
     def do_POST(self):
         try:
             q = urlparse(self.path)
             p = parse_qs(q.query)
 
+            if ZeDMDApiHTTPRequestHandler.slideshow_thread != None:
+                ZeDMDApiHTTPRequestHandler.slideshow_thread.terminate()
+                ZeDMDApiHTTPRequestHandler.slideshow_thread = None
+
             if q.path == "/clock":
-                args = ["dmd-play", "--clock"]
+                args = [ZeDMDApiHTTPRequestHandler.dmd_play, "--clock"]
                 if "format" in p and len(p["format"]) == 1:
                     args.extend(["--clock-format", p["format"][0]])
                 args.extend(ZeDMDApiHTTPRequestHandler.parameters2rgbargs(p))
@@ -100,7 +122,7 @@ class ZeDMDApiHTTPRequestHandler(BaseHTTPRequestHandler):
                 countdown = datetime.datetime(datetime.datetime.today().year+1, 1, 1, 0, 0).strftime("%Y-%m-%d %H:%M:%S") # next 1st january
                 if "to" in p and len(p["to"]) == 1:
                     countdown = p["to"][0]
-                args = ["dmd-play", "--countdown", countdown]
+                args = [ZeDMDApiHTTPRequestHandler.dmd_play, "--countdown", countdown]
                 if "header" in p and len(p["header"]) == 1:
                     args.extend(["--countdown-header", p["header"][0]])
                 if "format" in p and len(p["format"]) == 1:
@@ -116,14 +138,14 @@ class ZeDMDApiHTTPRequestHandler(BaseHTTPRequestHandler):
                 self.send_response(200)
                 self.end_headers()
             elif q.path == "/clear":
-                subprocess.Popen(["dmd-play", "--clear"])
+                subprocess.Popen([ZeDMDApiHTTPRequestHandler.dmd_play, "--clear"])
                 self.send_response(200)
                 self.end_headers()
             elif q.path == "/text":
                 txt = "ZeDMDos"
                 if "text" in p and len(p["text"]) == 1:
                     txt = p["text"][0]
-                args = ["dmd-play", "--text", txt]
+                args = [ZeDMDApiHTTPRequestHandler.dmd_play, "--text", txt]
                 if "overlay" in p:
                     args.append("--overlay")
                 if "overlay-time" in p and len(p["overlay-time"]) == 1:
@@ -151,7 +173,12 @@ class ZeDMDApiHTTPRequestHandler(BaseHTTPRequestHandler):
                         else:
                             file = ZeDMDApiHTTPRequestHandler.images_root + "/" + p["file"][0]
                 if file is not None:
-                    subprocess.Popen(["dmd-play", "--file", file])
+                    subprocess.Popen([ZeDMDApiHTTPRequestHandler.dmd_play, "--file", file])
+                self.send_response(200)
+                self.end_headers()
+            elif q.path == "/slideshow":
+                ZeDMDApiHTTPRequestHandler.slideshow_thread = multiprocessing.Process(target=self.slideshow)
+                ZeDMDApiHTTPRequestHandler.slideshow_thread.start()
                 self.send_response(200)
                 self.end_headers()
             else:
@@ -162,5 +189,5 @@ class ZeDMDApiHTTPRequestHandler(BaseHTTPRequestHandler):
             self.end_headers()
             traceback.print_exc()
 
-httpd = HTTPServer(('', 80), ZeDMDApiHTTPRequestHandler)
+httpd = HTTPServer(('', ZeDMDApiHTTPRequestHandler.port), ZeDMDApiHTTPRequestHandler)
 httpd.serve_forever()
